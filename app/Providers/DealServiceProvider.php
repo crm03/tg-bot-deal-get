@@ -14,7 +14,6 @@ class DealServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(DealService::class, function ($app) {
-            Log::debug("DealService создан: ");
             return new DealService();
         });
     }

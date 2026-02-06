@@ -14,7 +14,6 @@ class TelegramUserServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(TelegramUserService::class, function ($app) {
-            Log::debug("TelegramUserService создан: ");
             return new TelegramUserService();
         });
     }

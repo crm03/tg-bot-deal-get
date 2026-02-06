@@ -28,7 +28,10 @@ class DealService
 
     public function getDeal(int $id)
     {
-        $response = Http::get(config("services.bitrix_url.link") . 'crm.deal.get', ['id' => $id]);
+        $webhook = config("services.bitrix.webhook");
+        $response = Http::get($webhook . 'crm.deal.get', [
+            'id' => $id,
+        ]);
         return $response->json();
     }
 }
