@@ -35,7 +35,6 @@ class TelegramController extends Controller
 
             if ($contact) {
                 $phone = $contact->getPhoneNumber();
-                Log::debug("Received contact phone: " . $phone);
                 $this->authService->auth($update, $phone);
                 return;
             }
