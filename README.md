@@ -133,16 +133,9 @@ app/
 ## 📝 Логирование
 
 Логи находятся в `storage/logs/laravel.log`:
-- `DEBUG PHONE NUMBER` — отправленный номер
 - `Bitrix user.get response` — ответ от Bitrix24
 - `Received contact phone` — номер отправлен через кнопку
 
-## 🧪 Тестирование
-
-```bash
-php artisan test
-npm run test
-```
 
 ## 📄 Лицензия
 
