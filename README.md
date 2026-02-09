@@ -1,59 +1,149 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Telegram Bot - Bitrix24 Integration
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Telegram-бот для управления сделками Bitrix24 с двухфакторной аутентификацией по номеру телефона.
 
-## About Laravel
+## 📋 Описание
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Приватный Telegram-бот, который:
+- Аутентифицирует пользователей по номеру телефона (совпадение с Bitrix24)
+- Позволяет авторизованным пользователям запрашивать сделки по ID
+- Хранит информацию о пользователях и их статусе авторизации
+- Поддерживает команды `/logout` для выхода из системы
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## ✨ Функции
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **Аутентификация** — проверка номера телефона в Bitrix24
+- **Кнопка контакта** — быстрая отправка номера через нативную Telegram-кнопку
+- **Поддержка ручного ввода** — номер можно ввести вручную
+- **Получение сделкок** — получение сделок Bitrix24
+- **Состояние сессии** — хранение информации об авторизации в БД
 
-## Learning Laravel
+## 🔧 Требования
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- PHP 8.2+
+- Laravel 12.0+
+- Composer
+- Node.js (для Vite)
+- PostgreSQL или MySQL
+- Telegram Bot Token
+- Bitrix24 Webhook URL
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 📦 Установка
 
-## Laravel Sponsors
+### 1. Клонируем проект и устанавливаем зависимости
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```bash
+composer install
+npm install
+```
 
-### Premium Partners
+### 2. Копируем .env файл и генерируем ключ
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+```bash
+cp .env.example .env
+php artisan key:generate
+```
 
-## Contributing
+### 3. Создаём БД и запускаем миграции
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+php artisan migrate
+```
 
-## Code of Conduct
+### 4. Быстрая установка (одна команда)
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+composer run setup
+```
 
-## Security Vulnerabilities
+## ⚙️ Конфигурация
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### config/services.php
 
-## License
+```php
+'telegram' => [
+    'token' => env('TELEGRAM_BOT_TOKEN'),
+],
+'bitrix' => [
+    'webhook' => env('BITRIX_WEBHOOK_URL'),
+    'base_url' => env('BITRIX_BASE_URL'),
+],
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### .env переменные
+
+```env
+TELEGRAM_BOT_TOKEN=123456789:ABCDEFGHabcdefgh...
+BITRIX_URL=https://your-domain.bitrix24.ua/rest/...
+```
+
+### Настройка Webhook в Telegram
+
+```bash
+php artisan tinker
+php > Telegram::setWebhook(['url' => 'https://your-domain.com/telegram/webhook']);
+```
+
+## 🚀 Использование
+
+### Запуск сервера
+
+```bash
+php artisan serve
+npm run dev
+```
+
+Или всё сразу (сервер, queue, логи, Vite):
+
+```bash
+composer run dev
+```
+
+### Команды бота
+
+| Команда | Описание |
+|---------|----------|
+| `/logout` | Выход из системы и очистка авторизации |
+| Поделиться номером | Отправить контакт (кнопка в сообщении) |
+| Номер вручную | Ввести номер вручную (例: +380633333333) |
+| ID сделки | Получить информацию о сделке (авторизованным) |
+
+### Работа бота
+
+1. **Юзер пишет /start** → Бот просит номер телефона (кнопка + текстовый ввод)
+2. **Юзер отправляет номер** → Проверка в Bitrix24
+3. **Номер найден** → Авторизация, сохранение в БД
+4. **Номер не найден** → Ошибка, повторный запрос
+5. **Авторизованный юзер** → Может запрашивать сделки по ID
+
+## 🏗️ Архитектура
+
+```
+app/
+├── Http/Controllers/TelegramController.php   # Обработка Webhook
+├── Services/
+│   ├── AuthService.php                       # Аутентификация
+│   ├── TelegramUserService.php               # Управление пользователями
+│   └── DealService.php                       # Управление сделками
+└── Models/
+    ├── TelegramUser.php                      # Модель Telegram-пользователя
+    └── User.php                              # Модель системного юзера
+```
+
+## 📝 Логирование
+
+Логи находятся в `storage/logs/laravel.log`:
+- `DEBUG PHONE NUMBER` — отправленный номер
+- `Bitrix user.get response` — ответ от Bitrix24
+- `Received contact phone` — номер отправлен через кнопку
+
+## 🧪 Тестирование
+
+```bash
+php artisan test
+npm run test
+```
+
+## 📄 Лицензия
+
+MIT

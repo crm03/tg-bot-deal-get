@@ -31,7 +31,16 @@ class TelegramController extends Controller
         if ($update) {
             $message = $update->getMessage();
             $chatId = $message->getChat()->getId();
-            $text = $message->getText();
+            $contact = $message->getContact();
+
+            if ($contact) {
+                $phone = $contact->getPhoneNumber();
+                Log::debug("Received contact phone: " . $phone);
+                $this->authService->auth($update, $phone);
+                return;
+            }
+
+            $text = $message->getText() ?? '';
             
             $telegramUser = TelegramUser::where('chat_id', $chatId)->first();
 
@@ -41,6 +50,7 @@ class TelegramController extends Controller
             }
 
             if (!$telegramUser || !$telegramUser->is_authorized) {
+                Log::debug("DEBUG PHONE NUMBER: " . $text);
                 // Пользователь не авторизован - проверяем, похож ли текст на номер телефона
                 if (preg_match('/^\+?\d{10,}$/', $text)) {
                     // Текст похож на номер телефона - авторизуем
@@ -50,6 +60,18 @@ class TelegramController extends Controller
                     Telegram::sendMessage([
                         'chat_id' => $chatId,
                         'text' => "👤 Пожалуйста, введите ваш номер телефона (например: +380633333333 или 380633333333)",
+                        'reply_markup' => json_encode([
+                            'keyboard' => [
+                                [
+                                    [
+                                        'text' => 'Поделиться номером',
+                                        'request_contact' => true,
+                                    ],
+                                ],
+                            ],
+                            'one_time_keyboard' => true,
+                            'resize_keyboard' => true,
+                        ]),
                     ]);
                 }
                 return;
