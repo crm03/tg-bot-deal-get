@@ -4,71 +4,95 @@ namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
+
 use Telegram\Bot\Laravel\Facades\Telegram;
+use App\Services\AuthService;
+use App\Services\DealService;
+use App\Services\TelegramUserService;
+use App\Models\TelegramUser;
 
 class TelegramController extends Controller
 {
     private $bitrix_url;
-
+    private $authService;
+    private $dealService;
+    private $telegramUserService;
     public function __construct(){
-        $this->bitrix_url = config("services.bitrix_url.link");
-        if (!str_ends_with($this->bitrix_url, '/')) {
-            $this->bitrix_url .= '/';
-        }
+        $this->bitrix_url = config("services.bitrix.base_url");
+        $this->authService = app(AuthService::class);
+        $this->dealService = app(DealService::class);
+        $this->telegramUserService = app(TelegramUserService::class);
     }
     
-    private function getDeal(int $id)
-    {
-        $response = Http::get($this->bitrix_url . 'crm.deal.get', ['id' => $id]);
-        Log::debug("Bitrix URL: " . $this->bitrix_url . 'crm.deal.get', ['id' => $id]);
-        return $response->json();
-    }
-
-    private function formatDeal($dealData)
-    {
-        if (!isset($dealData['result'])) {
-            return 'Сделка не найдена';
-        }
-        
-        $deal = $dealData['result'];
-        
-        $text = "📋 <b>Сделка №" . ($deal['ID'] ?? 'N/A') . "</b>\n\n";
-        $text .= "<b>Название:</b> " . ($deal['TITLE'] ?? 'N/A') . "\n";
-        $text .= "<b>Тип:</b> " . ($deal['TYPE_ID'] ?? 'N/A') . "\n";
-        $text .= "<b>Статус:</b> " . ($deal['STAGE_ID'] ?? 'N/A') . "\n";
-        $text .= "<b>Контакт:</b> " . ($deal['CONTACT_ID'] ?? 'N/A') . "\n";
-        $text .= "<b>Сумма:</b> " . ($deal['OPPORTUNITY'] ?? '0') . " " . ($deal['CURRENCY_ID'] ?? 'UAH') . "\n";
-        $text .= "<b>Начало:</b> " . ($deal['BEGINDATE'] ?? 'N/A') . "\n";
-        $text .= "<b>Закрытие:</b> " . ($deal['CLOSEDATE'] ?? 'N/A') . "\n";
-        $text .= "<b>Создано:</b> " . ($deal['DATE_CREATE'] ?? 'N/A') . "\n";
-        $text .= "<b>Обновлено:</b> " . ($deal['DATE_MODIFY'] ?? 'N/A') . "\n";
-        
-        return $text;
-    }
 
     public function handle(Request $request)
     {
-        Log::info(print_r($request->all(), true));
         $update = Telegram::getWebhookUpdate();
-        
         if ($update) {
             $message = $update->getMessage();
-            $user = $message->getFrom();
             $chatId = $message->getChat()->getId();
-            $text = $message->getText();
-            
-            $dealId = $this->getDeal((int)$text  );
-            
-            $dealText = $this->formatDeal($dealId);
-            
-            Telegram::sendMessage([
-                'chat_id' => 2093803459, // $chatId,
-                'text' => $dealText,
-                'parse_mode' => 'HTML',
-            ]);
-        }
+            $contact = $message->getContact();
 
-        
+            if ($contact) {
+                $phone = $contact->getPhoneNumber();
+                Log::debug("Received contact phone: " . $phone);
+                $this->authService->auth($update, $phone);
+                return;
+            }
+
+            $text = $message->getText() ?? '';
+            
+            $telegramUser = TelegramUser::where('chat_id', $chatId)->first();
+
+            if (is_string($text) && trim($text) === '/logout') {
+                $this->authService->logout($chatId);
+                return;
+            }
+
+            if (!$telegramUser || !$telegramUser->is_authorized) {
+                Log::debug("DEBUG PHONE NUMBER: " . $text);
+                // Пользователь не авторизован - проверяем, похож ли текст на номер телефона
+                if (preg_match('/^\+?\d{10,}$/', $text)) {
+                    // Текст похож на номер телефона - авторизуем
+                    $this->authService->auth($update, $text);
+                } else {
+                    // Просим номер телефона
+                    Telegram::sendMessage([
+                        'chat_id' => $chatId,
+                        'text' => "👤 Пожалуйста, введите ваш номер телефона (например: +380633333333 или 380633333333)",
+                        'reply_markup' => json_encode([
+                            'keyboard' => [
+                                [
+                                    [
+                                        'text' => 'Поделиться номером',
+                                        'request_contact' => true,
+                                    ],
+                                ],
+                            ],
+                            'one_time_keyboard' => true,
+                            'resize_keyboard' => true,
+                        ]),
+                    ]);
+                }
+                return;
+            }
+            
+            // Пользователь авторизован проверка сделки
+            if (is_numeric($text)) {
+                $dealId = $this->dealService->getDeal((int)$text);
+                $dealText = $this->dealService->formatDeal($dealId);
+                
+                Telegram::sendMessage([
+                    'chat_id' => $chatId,
+                    'text' => $dealText,
+                    'parse_mode' => 'HTML',
+                ]);
+            } else {
+                Telegram::sendMessage([
+                    'chat_id' => $chatId,
+                    'text' => "❌ Пожалуйста, введите ID сделки (число)",
+                ]);
+            }
+        }
     }
 }

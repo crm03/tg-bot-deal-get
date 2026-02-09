@@ -37,8 +37,8 @@ return [
     'telegram' => [
         'key' => env('TELEGRAM_BOT_TOKEN')
     ],
-    'bitrix_url' => [
-        'link'=> env('BITRIX_URL')
+    'bitrix' => [
+        'webhook' => env('BITRIX_URL'),
     ],
 
 ];
